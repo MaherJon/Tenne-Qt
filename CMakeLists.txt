@@ -7,7 +7,6 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-# Release 优化
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_compile_definitions(QT_NO_DEBUG_OUTPUT)
     if(MINGW)
@@ -21,7 +20,6 @@ set(ONNXRUNTIME_DIR "D:/onnxruntime")
 set(ONNXRUNTIME_INCLUDE_DIR "${ONNXRUNTIME_DIR}/include")
 set(ONNXRUNTIME_LIB_DIR "${ONNXRUNTIME_DIR}/lib")
 
-# Windows 图标资源
 if(WIN32)
     set(WIN32_EXECUTABLE TRUE)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/resources.rc")
@@ -64,7 +62,6 @@ target_include_directories(AIDetector PRIVATE
     ${ONNXRUNTIME_INCLUDE_DIR}
 )
 
-# 复制 ONNX Runtime DLL
 if(WIN32 AND EXISTS "${ONNXRUNTIME_LIB_DIR}/onnxruntime.dll")
     add_custom_command(TARGET AIDetector POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
