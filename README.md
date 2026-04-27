@@ -3,11 +3,11 @@
 <div align="center">
 基于 ONNX Runtime 和 Qt6 的本地化 AI 文本检测工具
 
-https://img.shields.io/badge/Code-LGPLv3-blue.svg
-https://img.shields.io/badge/Model-Apache%25202.0-green.svg
-https://img.shields.io/badge/Qt-6.11.0-brightgreen.svg
-https://img.shields.io/badge/ONNX%2520Runtime-1.20.1-orange.svg
-https://img.shields.io/badge/Platform-Windows%252010%252F11-0078d7.svg
+![LGPL](https://img.shields.io/badge/Code-LGPLv3-blue.svg)
+![Apache](https://img.shields.io/badge/Model-Apache%25202.0-green.svg)
+![Qt](https://img.shields.io/badge/Qt-6.11.0-brightgreen.svg)
+![ONNX](https://img.shields.io/badge/ONNX%2520Runtime-1.20.1-orange.svg)
+![Platform](https://img.shields.io/badge/Platform-Windows%252010%252F11-0078d7.svg)
 
 </div>
 
