@@ -5,13 +5,19 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
 endif()
 
+if(WIN32)
+    set(WIN32_EXECUTABLE TRUE)
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/resources.rc")
+        set(RESOURCE_FILES resources.rc)
+    endif()
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-# 查找 Qt6 模块，确保包含 Network
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network)
 
 set(ONNXRUNTIME_DIR "D:/onnxruntime")
@@ -32,14 +38,15 @@ set(SOURCES
     main.cpp
     mainwindow.cpp
     onnx_inference.cpp
-    gitee_reporter.cpp
+    github_reporter.cpp
     feedback_dialog.cpp
+    ${RESOURCE_FILES}
 )
 
 set(HEADERS
     mainwindow.h
     onnx_inference.h
-    gitee_reporter.h
+    github_reporter.h
     feedback_dialog.h
 )
 

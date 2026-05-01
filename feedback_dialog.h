@@ -38,7 +38,7 @@ private:
     QByteArray captureScreenshot();
     QString generateIssueTitle() const;
     QString generateIssueBody() const;
-    void showTokenDialog();
+    void updateTokenStatus();
 };
 
 #endif // FEEDBACK_DIALOG_H

@@ -1,18 +1,18 @@
 #include "feedback_dialog.h"
 #include "ui_feedback_dialog.h"
-#include "gitee_reporter.h"
+#include "github_reporter.h"
 #include <QMessageBox>
-#include <QInputDialog>
 #include <QScreen>
 #include <QGuiApplication>
 #include <QPixmap>
 #include <QBuffer>
+#include <QLineEdit>
 #include <QDateTime>
 #include <QPushButton>
 #include <QLabel>
-#include <QPlainTextEdit>
-#include <QComboBox>
-#include <QCheckBox>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QDialog>
 
 FeedbackDialog::FeedbackDialog(const QString& text,
                                bool isAiResult,
@@ -28,165 +28,140 @@ FeedbackDialog::FeedbackDialog(const QString& text,
 {
     ui->setupUi(this);
 
-    setWindowTitle("提交错误反馈");
+    ui->textPreview->setPlainText(text);
 
-    ui->resultLabel->setText(m_resultIsAi ? "AI 生成" : "人类撰写");
+    ui->resultLabel->setText(m_resultIsAi ? "AI生成" : "人类撰写");
     ui->aiScoreLabel->setText(QString::number(m_aiScore * 100, 'f', 1) + "%");
     ui->humanScoreLabel->setText(QString::number(m_humanScore * 100, 'f', 1) + "%");
 
-    QString shortText = text;
-    if (shortText.length() > 200) {
-        shortText = shortText.left(200) + "...";
+    updateTokenStatus();
+
+    if (m_resultIsAi) {
+        ui->expectedCombo->setCurrentText("人类撰写的");
+    } else {
+        ui->expectedCombo->setCurrentText("AI生成的");
     }
-    ui->textPreview->setPlainText(shortText);
 
     connect(ui->submitBtn, &QPushButton::clicked, this, &FeedbackDialog::onSubmitClicked);
-    connect(ui->tokenBtn, &QPushButton::clicked, this, &FeedbackDialog::onTokenSetupClicked);
     connect(ui->cancelBtn, &QPushButton::clicked, this, &QDialog::reject);
+    connect(ui->tokenBtn, &QPushButton::clicked, this, &FeedbackDialog::onTokenSetupClicked);
 
-    if (!GiteeReporter::instance().hasToken()) {
-        ui->tokenStatusLabel->setText("⚠️ 未配置 Token");
-        ui->tokenStatusLabel->setStyleSheet("color: orange;");
-    } else {
-        ui->tokenStatusLabel->setText("✅ Token 已配置");
-        ui->tokenStatusLabel->setStyleSheet("color: green;");
+    if (!GitHubReporter::instance().hasToken()) {
+        QMessageBox::information(this, "首次使用",
+                                 "请先点击「配置 Token」设置您的 GitHub 访问令牌");
     }
-}
-
-FeedbackDialog::~FeedbackDialog()
-{
-    delete ui;
 }
 
 void FeedbackDialog::onTokenSetupClicked()
 {
-    showTokenDialog();
-}
+    QDialog dialog(this);
+    dialog.setWindowTitle("配置 GitHub Token");
+    dialog.setMinimumWidth(500);
 
-void FeedbackDialog::showTokenDialog()
-{
-    bool ok;
-    QString token = QInputDialog::getText(
-        this,
-        "配置 Gitee Token",
-        "请输入您的 Gitee 私人令牌：\n\n"
-        "获取步骤：\n"
-        "1. 访问 https://gitee.com/profile/personal_tokens\n"
-        "2. 点击「生成新令牌」\n"
-        "3. 勾选 issues 权限\n"
-        "4. 生成并复制令牌\n\n"
-        "令牌：",
-        QLineEdit::Password,
-        QString(),
-        &ok
+    QVBoxLayout* layout = new QVBoxLayout(&dialog);
+
+    QLabel* infoLabel = new QLabel(
+        "请按以下步骤获取 GitHub Personal Access Token：\n\n"
+        "1. 访问 https://github.com/settings/tokens\n"
+        "2. 点击「Generate new token (classic)」\n"
+        "3. 勾选「repo」权限\n"
+        "4. 生成并复制 token\n\n"
+        "请输入您的 Token："
         );
+    infoLabel->setWordWrap(true);
+    layout->addWidget(infoLabel);
 
-    if (ok && !token.isEmpty()) {
-        GiteeReporter::instance().setToken(token);
-        GiteeReporter::instance().setRepo("maheos", "Tenne-Qt");
+    QLineEdit* input = new QLineEdit;
+    input->setEchoMode(QLineEdit::Password);
+    layout->addWidget(input);
 
-        ui->tokenStatusLabel->setText("✅ Token 已配置");
-        ui->tokenStatusLabel->setStyleSheet("color: green;");
+    QHBoxLayout* btnLayout = new QHBoxLayout;
+    QPushButton* okBtn = new QPushButton("保存");
+    QPushButton* cancelBtn = new QPushButton("取消");
+    btnLayout->addWidget(okBtn);
+    btnLayout->addWidget(cancelBtn);
+    layout->addLayout(btnLayout);
 
-        QMessageBox::information(this, "成功", "Token 配置成功！");
+    connect(okBtn, &QPushButton::clicked, &dialog, &QDialog::accept);
+    connect(cancelBtn, &QPushButton::clicked, &dialog, &QDialog::reject);
+
+    if (dialog.exec() == QDialog::Accepted && !input->text().isEmpty()) {
+        GitHubReporter::instance().setToken(input->text());
+        updateTokenStatus();
+        QMessageBox::information(this, "成功", "Token 已保存");
     }
 }
 
 void FeedbackDialog::onSubmitClicked()
 {
-    // 检查 Token
-    if (!GiteeReporter::instance().hasToken()) {
-        QMessageBox::StandardButton reply = QMessageBox::question(
-            this,
-            "未配置 Token",
-            "尚未配置 Gitee Token，是否立即配置？",
-            QMessageBox::Yes | QMessageBox::No
-            );
-
-        if (reply == QMessageBox::Yes) {
-            showTokenDialog();
-        }
-        return;
-    }
-
-    QString expectedLabel = ui->expectedCombo->currentText();
+    QString expected = ui->expectedCombo->currentText();
     QString comment = ui->commentEdit->toPlainText();
 
     QString title = generateIssueTitle();
-    QString body = generateIssueBody() +
-                   "\n\n## 用户反馈\n" +
-                   "**期望标签**: " + expectedLabel + "\n\n" +
-                   "**备注**: " + (comment.isEmpty() ? "无" : comment);
+    QString body = generateIssueBody() + "\n\n用户期望: " + expected + "\n\n用户备注: " + comment;
 
-    QByteArray screenshot;
-    if (ui->includeScreenshotCheck->isChecked()) {
-        screenshot = captureScreenshot();
-    }
+    QByteArray screenshot = captureScreenshot();
 
     ui->submitBtn->setEnabled(false);
     ui->submitBtn->setText("提交中...");
 
-    connect(&GiteeReporter::instance(), &GiteeReporter::submitSuccess,
+    connect(&GitHubReporter::instance(), &GitHubReporter::submitSuccess,
             this, [this](const QString& url) {
                 QMessageBox::information(this, "提交成功",
-                                         QString("反馈已提交！\n\n您可以在以下链接查看：\n%1").arg(url));
+                                         "反馈已提交，您可以在以下链接查看:\n" + url);
                 accept();
             });
 
-    connect(&GiteeReporter::instance(), &GiteeReporter::submitFailed,
+    connect(&GitHubReporter::instance(), &GitHubReporter::submitFailed,
             this, [this](const QString& error) {
                 QMessageBox::warning(this, "提交失败",
-                                     QString("反馈提交失败：\n%1\n\n请检查网络连接和 Token 配置").arg(error));
+                                     "提交失败: " + error + "\n\n请检查网络连接和 Token 配置");
                 ui->submitBtn->setEnabled(true);
                 ui->submitBtn->setText("提交反馈");
             });
 
-    connect(&GiteeReporter::instance(), &GiteeReporter::tokenInvalid,
+    connect(&GitHubReporter::instance(), &GitHubReporter::tokenInvalid,
             this, [this]() {
                 QMessageBox::warning(this, "Token 无效",
-                                     "Gitee Token 无效或已过期，请重新配置。");
-                showTokenDialog();
+                                     "请先配置有效的 GitHub Token");
                 ui->submitBtn->setEnabled(true);
                 ui->submitBtn->setText("提交反馈");
+                onTokenSetupClicked();
             });
 
-    GiteeReporter::instance().submitFeedback(title, body, screenshot);
+    GitHubReporter::instance().submitFeedback(title, body, screenshot);
 }
 
 QString FeedbackDialog::generateIssueTitle() const
 {
-    QString prefix = m_resultIsAi ? "[误报] AI被识别为人类" : "[漏报] 人类被识别为AI";
-    QString preview = m_originalText.left(50);
-    return QString("%1: %2").arg(prefix, preview);
+    return QString("[错误检测] %1 被识别为 %2")
+        .arg(m_originalText.left(50))
+        .arg(m_resultIsAi ? "AI" : "人类");
 }
 
 QString FeedbackDialog::generateIssueBody() const
 {
     return QString(
-               "## 📝 检测信息\n\n"
-               "| 项目 | 值 |\n"
-               "|------|-----|\n"
-               "| 检测结果 | **%1** |\n"
-               "| AI 分数 | %2 |\n"
-               "| 人类分数 | %3 |\n\n"
-               "## 📄 原文内容\n\n"
-               "```\n%4\n```\n\n"
+               "## 检测反馈\n\n"
+               "**原文文本**:\n```\n%1\n```\n\n"
+               "**检测结果**: %2\n"
+               "**AI 分数**: %3\n"
+               "**人类分数**: %4\n\n"
                "---\n"
                "*提交时间: %5*\n"
-               "*由 Tenne-Qt 客户端自动提交*"
-               ).arg(m_resultIsAi ? "AI 生成" : "人类撰写")
+               "*Tenne-Qt 反馈工具*\n"
+               ).arg(m_originalText)
+        .arg(m_resultIsAi ? "AI 生成" : "人类撰写")
         .arg(m_aiScore)
         .arg(m_humanScore)
-        .arg(m_originalText)
         .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
 }
 
 QByteArray FeedbackDialog::captureScreenshot()
 {
     QScreen* screen = QGuiApplication::primaryScreen();
-    if (!screen) return QByteArray();
-
     QPixmap pixmap = screen->grabWindow(0);
+
     pixmap = pixmap.scaled(800, 600, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 
     QByteArray bytes;
@@ -195,4 +170,20 @@ QByteArray FeedbackDialog::captureScreenshot()
     pixmap.save(&buffer, "PNG");
 
     return bytes;
+}
+
+void FeedbackDialog::updateTokenStatus()
+{
+    if (GitHubReporter::instance().hasToken()) {
+        ui->tokenStatusLabel->setText("✅ Token 已配置");
+        ui->tokenStatusLabel->setStyleSheet("color: green;");
+    } else {
+        ui->tokenStatusLabel->setText("⚠️ 未配置 Token");
+        ui->tokenStatusLabel->setStyleSheet("color: orange;");
+    }
+}
+
+FeedbackDialog::~FeedbackDialog()
+{
+    delete ui;
 }
