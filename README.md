@@ -88,13 +88,36 @@ D:\Qt\6.11.0\
 # 解压到 D:\onnxruntime
 
 # 目录结构应如下：
-D:\onnxruntime\
-├── include\
-│   └── onnxruntime_cxx_api.h
-├── lib\
-│   ├── onnxruntime.lib
-│   └── onnxruntime.dll
-└── bin\
+Tenne-Qt/
+│  .gitignore
+│  AIDetector.pro
+│  app_icon.ico
+│  LICENSE
+│  README.md
+│  resources.rc
+│  TenneLogo.jpg
+│  界面预览.png
+│  
+├─.qtcreator/
+│      AIDetector.pro.user
+│      untitled.pro.user     
+├─include/
+│      feedback_dialog.h
+│      github_reporter.h
+│      mainwindow.h
+│      onnx_inference.h
+│      
+├─src/
+│      feedback_dialog.cpp
+│      github_reporter.cpp
+│      main.cpp
+│      mainwindow.cpp
+│      onnx_inference.cpp
+│      
+└─ui/
+        feedback_dialog.ui
+        mainwindow.ui
+
 ```
 
 - 3. 克隆项目
@@ -134,31 +157,44 @@ cd D:\qtproject\Tenne-Qt
 mkdir build
 cd build
 
-# 配置 CMake (Release)
-cmake .. -DCMAKE_BUILD_TYPE=Release -G "MinGW Makefiles"
+# 配置 qmake (Release)
+qmake AIDetector.pro
 
 # 编译
-cmake --build . --config Release -j4
+make  # Linux/macOS
+nmake # Windows (MSVC)
+mingw32-make # Windows (MinGW)
+
 项目结构
-text
 Tenne-Qt/
-├── .github/                  # GitHub 配置
-│   └── workflows/           # CI/CD 工作流
-├── CMakeLists.txt           # CMake 配置文件
-├── main.cpp                 # 程序入口
-├── mainwindow.cpp           # 主窗口实现
-├── mainwindow.h             # 主窗口头文件
-├── mainwindow.ui            # UI 设计文件
-├── onnx_inference.cpp       # ONNX 推理实现
-├── onnx_inference.h         # ONNX 推理头文件
-├── resources.rc             # Windows 资源文件
-├── app_icon.ico             # 应用程序图标
-├── .gitignore               # Git 忽略文件
-├── .gitattributes           # Git 属性配置
-├── LICENSE                  # LGPLv3 许可证
-├── MODEL_LICENSE            # Apache 2.0 许可证
-├── README.md                # 项目文档
-└── CHANGELOG.md             # 更新日志
+│  .gitignore
+│  AIDetector.pro
+│  app_icon.ico
+│  LICENSE
+│  README.md
+│  resources.rc
+│  TenneLogo.jpg
+│  界面预览.png
+│  
+├─.qtcreator/
+│      AIDetector.pro.user
+│      untitled.pro.user     
+├─include/
+│      feedback_dialog.h
+│      github_reporter.h
+│      mainwindow.h
+│      onnx_inference.h
+│      
+├─src/
+│      feedback_dialog.cpp
+│      github_reporter.cpp
+│      main.cpp
+│      mainwindow.cpp
+│      onnx_inference.cpp
+│      
+└─ui/
+        feedback_dialog.ui
+        mainwindow.ui
 ```
 
 ### 核心模块说明
