@@ -67,7 +67,6 @@ AI 痕迹百分比
 | ---- | ---- | --- | ------ |
 | Qt | 6.11.0 | GUI 框架 | LGPLv3 |
 | ONNX Runtime | 1.25.0 | 模型推理 | MIT |
-| CMake | 3.16+ | 构建系统 BSD 3-Clause |
 | MinGW | 11.0 | 编译器 | GPL |
 
 ### 环境配置
@@ -120,11 +119,10 @@ cd Tenne-Qt
 使用 Qt Creator
 
 ```bash
-1. 打开 Qt Creator
-2. 打开项目：选择 CMakeLists.txt
-3. 选择构建套件：Desktop Qt 6.11.0 MinGW 64-bit
-4. 选择构建模式：Release
-5. 点击"构建"或按 Ctrl+B
+1. 使用QC打开.pro文件
+2. 选择构建套件：Desktop Qt 6.11.0 MinGW 64-bit
+3. 选择构建模式：Release
+4. 点击"构建"或按 Ctrl+B
 ```
 
 使用命令行
